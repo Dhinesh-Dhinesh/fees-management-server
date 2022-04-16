@@ -23,6 +23,7 @@ const signUp = async (req, res) => {
         await newUser.save();
 
         res.status(201).json({
+            success: true,
             message: 'User created successfully'
         });
     } catch (e) {
@@ -31,7 +32,7 @@ const signUp = async (req, res) => {
 }
 
 //LogIn Function
-const login = async (req, res) => {
+const logIn = async (req, res) => {
     const { email, password } = req.body;
     try {
         const user = await User.findOne({ email });
@@ -48,20 +49,21 @@ const login = async (req, res) => {
         }
 
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-            expiresIn: '30s'
+            expiresIn: '1hr'
         });
 
-        res.cookie(String(user._id), token, {
+
+        res.cookie("jwt", token, {
             path: '/',
             httpOnly: true,
-            expires: new Date(Date.now() + 30000),
-            sameSite: 'lax'
+            expires: new Date(Date.now() + 3600000),
+            sameSite: 'lax',
+            secure: false
         })
 
         return res.status(200).json({
-            message: 'User logged in successfully',
-            user,
-            token,
+            success: true,
+            user
         });
     } catch (e) {
         console.log(e);
@@ -70,10 +72,11 @@ const login = async (req, res) => {
 
 //Verifying sending token Function
 const verifyToken = async (req, res, next) => {
+
     const cookies = req.headers.cookie;
     try {
         const token = cookies.split('=')[1];
-        
+
         if (!token) {
             return res.status(401).json({
                 message: 'No token provided'
@@ -93,7 +96,7 @@ const verifyToken = async (req, res, next) => {
 
     } catch (e) {
         return res.status(401).json({
-            message: 'No token provided' 
+            message: 'No token provided'
         });
     }
 
@@ -115,14 +118,23 @@ const getUser = async (req, res) => {
         });
     }
     res.status(200).json({
-        message: 'User found',
+        success: true,
         user
     });
 }
 
+//logout
+const logOut = (req, res) => {
+    res.clearCookie("jwt");
+    res.status(200).json({
+        success: true,
+        message: 'Logged out successfully'
+    });
+}
 
 // <-----Export----->
 exports.signUp = signUp
-exports.login = login
+exports.logIn = logIn
 exports.verifyToken = verifyToken
 exports.getUser = getUser
+exports.logOut = logOut
